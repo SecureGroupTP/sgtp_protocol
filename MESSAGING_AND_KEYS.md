@@ -19,6 +19,7 @@
 - Шифрование текущим `CK`.
 - `message_uuid` и `nonce` открытые.
 - Подпись обязательна.
+- После приёма `MESSAGE` relay отправляет отправителю `MESSAGE_ACK` с `message_uuid` (16 байт).
 
 ## STATUS и MESSAGE_FAILED
 

@@ -22,6 +22,7 @@
 | FIN | `0x000F` |
 | KICK_REQUEST | `0x0010` |
 | KICKED | `0x0011` |
+| MESSAGE_ACK | `0x0012` |
 
 ## Кратко по payload
 
@@ -37,6 +38,7 @@
   - `v2` (Flutter): `epoch(8) + nonce(8) + ciphertext(48)`.
 - `CHAT_KEY_ACK`: пусто.
 - `MESSAGE`: `message_uuid(16) + nonce(8) + ciphertext(...)`.
+- `MESSAGE_ACK`: `message_uuid(16)` (подтверждение от relay, что MESSAGE принят).
 - `MESSAGE_FAILED`: зашифрованный UUID неуспешного сообщения.
 - `MESSAGE_FAILED_ACK`: пусто.
 - `STATUS`: зашифрованный статус (`code + text`).
