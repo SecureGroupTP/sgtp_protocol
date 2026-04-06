@@ -26,7 +26,10 @@
 
 Клиент Flutter:
 
-- Для discover использует HTTP `GET /sgtp/discovery`.
+- Для discover использует HTTP `GET /sgtp/discovery` с fallback-порядком портов:
+  1. `https://<host>:443/sgtp/discovery`
+  2. `http://<host>:80/sgtp/discovery`
+  3. `http://<host>:77/sgtp/discovery`
 - Для TCP транспорта при connect сначала читает и отбрасывает 25-байтный баннер, затем начинает SGTP frame stream.
 
 ## HTTP transport (session protocol)

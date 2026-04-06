@@ -25,6 +25,7 @@
 - `STATUS` и `MESSAGE_FAILED` шифруются pairwise ключом между sender/receiver.
 - В `v1` nonce берётся из `timestamp`.
 - В Flutter `v2` поддерживается явный nonce в начале payload для shared-key пакетов.
+- В текущем runtime Flutter-клиента принимаются кадры только с `version=0x0002`, поэтому практический путь совместимости — использовать `v2` формат.
 
 ## FIN
 

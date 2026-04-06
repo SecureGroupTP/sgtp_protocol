@@ -30,7 +30,8 @@
 - `INFO(resp)`: `count(uint64) + count*uuid(16)`.
 - `CHAT_REQUEST`:
   - `v1`: `count + uuids`.
-  - Flutter extension: дополнительно `chat_name` и `avatar`.
+  - Flutter extension: дополнительно `chat_name_length(uint32) + chat_name(UTF-8) + avatar_length(uint32) + avatar_bytes`.
+  - Ограничение, которое реально валидируется на клиенте: `chat_name <= 255` UTF-8 байт.
 - `CHAT_KEY`:
   - `v1`: `epoch(8) + ciphertext(48)`.
   - `v2` (Flutter): `epoch(8) + nonce(8) + ciphertext(48)`.

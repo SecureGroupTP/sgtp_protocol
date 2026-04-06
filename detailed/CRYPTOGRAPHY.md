@@ -1,6 +1,7 @@
 # Криптография SGTP: детальное описание
 
 Этот документ описывает полную криптографическую модель SGTP: алгоритмы, ключевой материал, порядок операций, nonce-схемы и жизненный цикл ключей.
+Примечание по текущему Flutter runtime: входящие фреймы принимаются только с `version=0x0002`, поэтому `v1` ниже описан как legacy для совместимости/истории.
 
 ---
 
@@ -12,7 +13,7 @@
 | Эфемерный DH для pairwise | **X25519** | 32-байтный ephemeral key pair |
 | Групповое шифрование (MESSAGE) | **ChaCha20-Poly1305** | 32-байтный ключ, 12-байтный nonce |
 | Pairwise шифрование (CHAT_KEY, STATUS, MESSAGE_FAILED) | **ChaCha20-Poly1305** | тот же алгоритм |
-| Деривация shared secret (v2) | **HKDF** или KDF(secret, room_uuid) | — |
+| Деривация shared secret (v2) | **HKDF-SHA256** | `salt=room_uuid`, `info="sgtp-shared-key-v1"` |
 
 ### Почему ChaCha20-Poly1305?
 

@@ -155,7 +155,7 @@ class PeerInfo {
   final Uint8List ed25519PubKey;  // 32 байта, из PING/PONG
   Uint8List? sharedKey;           // 32 байта, после DH обмена
   bool handshakeComplete;         // true после получения PONG
-  int protocolVersion;            // 0x0001 или 0x0002
+  int protocolVersion;            // в текущем runtime фактически 0x0002
   String? displayName;            // из CHAT_REQUEST или chat_meta
   Uint8List? avatar;              // из CHAT_REQUEST или chat_meta
   DateTime lastSeen;              // обновляется при каждом фрейме
@@ -168,7 +168,7 @@ class PeerInfo {
 - Периодическая проверка: `pingIntervalSeconds × 3` мс (по умолчанию **90 с**)
 - При получении INTENT от peer-а: `pingIntervalSeconds × 4` мс (по умолчанию **120 с**)
 
-Peer считается stale и удаляется из `_peers`, если за это время не пришло ни одного фрейма. Мастер не отправляет KICKED для stale peer-ов автоматически — требуется явный KICK_REQUEST от другого участника.
+Peer считается stale и удаляется из `_peers`, если за это время не пришло ни одного фрейма. Мастер не отправляет `KICKED` для stale peer-ов автоматически; нормативный сценарий с `KICK_REQUEST` остаётся протокольной веткой, но в текущем клиентском runtime используется редко.
 
 ### 4.2 Keepalive
 
@@ -184,7 +184,7 @@ Flutter-клиент отправляет keepalive каждые `pingIntervalSe
 
 ```dart
 abstract class SgtpTransport {
-  Stream<Uint8List> get incoming;  // поток входящих сырых байт
+  Stream<Uint8List> get inbound;   // поток входящих сырых байт
   Future<void> send(Uint8List frame);
   Future<void> connect();
   Future<void> close();
@@ -199,8 +199,8 @@ abstract class SgtpTransport {
 class TcpSgtpTransport implements SgtpTransport {
   // 1. dart:io SecureSocket.connect() при useTls=true
   // 2. Читаем 25 байт discovery banner, отбрасываем
-  // 3. incoming: Stream.fromSocket(socket) → накапливаем байты в буфере
-  // 4. send: socket.add(frame) через isolate для безопасности
+  // 3. inbound: слушаем сокет и прокидываем байты в StreamController<Uint8List>
+  // 4. send: socket.add(frame) + flush()
 }
 ```
 
@@ -208,37 +208,30 @@ TCP — single-stream, поэтому важна сериализация чер
 
 ### 5.3 WebSocket транспорт
 
-Два файла: `_io.dart` для мобильных/desktop (dart:io WebSocket) и `_web.dart` для браузера (dart:html WebSocket). API идентичен, реализация разная — платформо-специфический код через conditional imports.
+Два файла: `_io.dart` для мобильных/desktop и `_web.dart` для браузера.
+API идентичен, реализация разная — платформо-специфический код через conditional imports.
 
 ```dart
-// native:
-final ws = await WebSocket.connect(uri, ...);
-ws.add(frame);
+// native (io): raw socket + HTTP Upgrade + ручной WS frame encode/decode
+// web: WebSocketChannel.connect(uri)
 
-// web:
-final ws = html.WebSocket(uri);
-ws.send(frame);
+transport.send(frameBytes);
 ```
 
 ### 5.4 HTTP Session транспорт
 
 ```dart
 class HttpSgtpTransport implements SgtpTransport {
-  String? _sid;  // hex session ID
+  String? _sidHex;  // hex session ID
 
   Future<void> connect() async {
-    final resp = await _client.post('/sgtp/session');
-    _sid = hex.encode(resp.body);
-    _startLongPoll();  // горутина непрерывного polling
+    // POST /sgtp/session -> sid (16 raw bytes; дополнительно поддерживается JSON {sid})
+    _sidHex = await _createSession();
+    _startRecvLoop();  // непрерывный GET /sgtp/recv long-poll loop
   }
 
   Future<void> send(Uint8List frame) async {
-    await _client.post('/sgtp/send?sid=$_sid', body: frame);
-  }
-
-  void _startLongPoll() {
-    // Цикл: GET /sgtp/recv?sid=... → emit полученные байты → повтор
-    // При 200 с пустым телом (нет данных за 60s) — немедленный перезапрос
+    await _client.post('/sgtp/send?sid=$_sidHex', body: frame);
   }
 }
 ```
@@ -591,34 +584,9 @@ void _onPeerLeft(String departedUUID) {
 
 ## 13. Kick механизм
 
-```dart
-// Любой участник может запросить кик
-Future<void> kickPeer(String targetUUID) async {
-  // Отправляем KICK_REQUEST мастеру (unicast)
-  await _sendFrame(buildKickRequest(
-    receiver: masterUUIDBytes,
-    target: hexToBytes(targetUUID),
-  ));
-}
-
-// Мастер обрабатывает KICK_REQUEST
-Future<void> _onKickRequest(ParsedFrame frame) async {
-  if (!_isMaster) return;
-  final targetUUID = frame.payload.sublist(0, 16);
-
-  // Пробуем достучаться до target
-  final pingResult = await _pingPeer(targetUUID, timeout: Duration(seconds: 5));
-  if (!pingResult) {
-    // Не отвечает → кикаем
-    await _sendFrame(buildKicked(
-      receiver: BROADCAST_UUID,
-      target: targetUUID,
-    ));
-    _peers.remove(bytesToHex(targetUUID));
-    await _rotateChatKey();  // Ротация после удаления peer-а
-  }
-}
-```
+В текущем Flutter runtime `KICK_REQUEST` не используется как активная клиентская ветка.
+Клиент обрабатывает входящий `KICKED` (удаляет указанного peer из локального состояния).
+Нормативный flow `KICK_REQUEST -> KICKED` остаётся частью протокола, но в приложении опора в основном на keepalive/stale-cleanup и `FIN`.
 
 ---
 

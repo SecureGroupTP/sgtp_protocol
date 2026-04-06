@@ -433,18 +433,31 @@ GET http://example.com:8000/sgtp/discovery
 
 ```json
 {
-  "transports": [
-    {"type": "tcp",       "host": "example.com", "port": 7777, "tls": false},
-    {"type": "tcp",       "host": "example.com", "port": 7778, "tls": true},
-    {"type": "http",      "host": "example.com", "port": 8000, "tls": false},
-    {"type": "http",      "host": "example.com", "port": 8001, "tls": true},
-    {"type": "websocket", "host": "example.com", "port": 8080, "tls": false},
-    {"type": "websocket", "host": "example.com", "port": 8081, "tls": true}
-  ]
+  "flags": 63,
+  "ports": {
+    "tcp": 7777,
+    "tcp_tls": 7778,
+    "http": 8000,
+    "http_tls": 8001,
+    "ws": 8080,
+    "ws_tls": 8081
+  },
+  "enabled": {
+    "tcp": true,
+    "tcp_tls": true,
+    "http": true,
+    "http_tls": true,
+    "ws": true,
+    "ws_tls": true
+  },
+  "payload": {
+    "base64": "<25-byte payload in base64>",
+    "hex": "<25-byte payload in hex>"
+  }
 }
 ```
 
-Если порт не настроен (значение `0`), он не включается в ответ.
+Если порт не настроен (значение `0`), соответствующий флаг в `enabled` будет `false`.
 
 ### 10.4 За reverse-proxy (nginx)
 
