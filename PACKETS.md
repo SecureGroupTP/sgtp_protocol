@@ -36,12 +36,15 @@
 - `CHAT_KEY`:
   - `v1`: `epoch(8) + ciphertext(48)`.
   - `v2` (Flutter): `epoch(8) + nonce(8) + ciphertext(48)`.
-- `CHAT_KEY_ACK`: пусто.
+- `CHAT_KEY_ACK`:
+  - `v1`: пусто.
+  - `v2` (рекомендуется): `epoch(8)` — ACK относится к конкретной эпохе.
 - `MESSAGE`: `message_uuid(16) + nonce(8) + ciphertext(...)`.
 - `MESSAGE_ACK`: `message_uuid(16)` (подтверждение от relay, что MESSAGE принят).
 - `MESSAGE_FAILED`: зашифрованный UUID неуспешного сообщения.
 - `MESSAGE_FAILED_ACK`: пусто.
 - `STATUS`: зашифрованный статус (`code + text`).
+  - Для ресинхронизации ключа используется код `NEED_CHAT_KEY` (см. `reference/spec.md`).
 - `HSIR`: пусто.
 - `HSI`: `message_count(uint64)`.
 - `HSR`: `offset(uint64) + limit(uint64)`.
